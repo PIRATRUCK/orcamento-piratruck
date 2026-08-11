@@ -589,10 +589,10 @@ novoOrcamento();
 /* ===== PIRATRUCK — login Firebase (Auth) + sync Firestore (adicionado pelo assistente) ===== */
 const EMBEDDED_FIREBASE_CONFIG = { apiKey:"AIzaSyCjrbTh9_yovb2CRtsXNL6fuOEyXnpFvcY", authDomain:"painel-veiculos-4a6f5.firebaseapp.com", projectId:"painel-veiculos-4a6f5", storageBucket:"painel-veiculos-4a6f5.firebasestorage.app", messagingSenderId:"910089422875", appId:"1:910089422875:web:fbca3bf5d3f2bdeea950be", measurementId:"G-HX35ZBYJ2S" };
 const FS_COLLECTION = "orcamentos";
-let fbApp=null, fbAuth=null, fbDb=null, cloudReady=false, cloudHist=[];
+var fbApp=null, fbAuth=null, fbDb=null, cloudReady=false, cloudHist=[];  /* var: evita TDZ quando getHist roda cedo */
 
 /* override: historico vem da nuvem (Firestore) */
-function getHist(){ return cloudReady ? cloudHist : []; }
+function getHist(){ return (typeof cloudReady!=='undefined' && cloudReady) ? cloudHist : []; }
 function salvar(){
   const o=collect();
   if(!o.pecas.length && !o.servicos.length){ alert('Adicione ao menos uma peca ou servico antes de salvar.'); return; }
