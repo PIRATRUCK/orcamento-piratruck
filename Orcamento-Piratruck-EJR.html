@@ -644,7 +644,7 @@ function ptDoLogin(){
   var pass=(document.getElementById("pt-pass")||{}).value||"";
   var m=document.getElementById("pt-login-msg"); if(m) m.style.display="none";
   fbAuth.signInWithEmailAndPassword(email.trim(), pass)
-    .catch(function(err){ if(m){ m.textContent="E-mail ou senha incorretos."; m.style.display="block"; } });
+    .catch(function(err){ var c=(err&&err.code)?err.code:"erro"; var msg={"auth/invalid-credential":"E-mail ou senha incorretos.","auth/wrong-password":"Senha incorreta.","auth/user-not-found":"Usuario nao encontrado.","auth/invalid-email":"E-mail invalido.","auth/unauthorized-domain":"Dominio nao autorizado no Firebase (adicione piratruck.github.io em Authentication > Settings > Authorized domains).","auth/operation-not-allowed":"Provedor E-mail/senha nao esta ativado no Firebase."}[c]||("Erro: "+c); if(m){ m.textContent=msg; m.style.display="block"; } console.warn("LOGIN ERRO:", c, err&&err.message); });
 }
 function ptLogout(){ if(fbAuth) fbAuth.signOut(); }
 function ptAddLogout(){
