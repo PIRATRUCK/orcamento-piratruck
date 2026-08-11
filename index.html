@@ -655,6 +655,7 @@ function ptAddLogout(){
   h.appendChild(b);
 }
 function ptBoot(){
+  ptShowLogin();  /* bloqueia a tela IMEDIATAMENTE ate confirmar o login */
   if(typeof firebase==="undefined"){ alert("Nao carregou o Firebase (verifique a internet)."); return; }
   fbApp = firebase.initializeApp(EMBEDDED_FIREBASE_CONFIG);
   fbAuth = firebase.auth();
