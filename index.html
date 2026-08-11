@@ -307,6 +307,7 @@
 <div id="printArea"></div>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
 /* ---------- utilidades ---------- */
@@ -585,91 +586,84 @@ function imprimir(orc){
 /* ---------- init ---------- */
 novoOrcamento();
 
-/* ===== PIRATRUCK — sync Firebase + login (adicionado pelo assistente) ===== */
+/* ===== PIRATRUCK — login Firebase (Auth) + sync Firestore (adicionado pelo assistente) ===== */
 const EMBEDDED_FIREBASE_CONFIG = { apiKey:"AIzaSyCjrbTh9_yovb2CRtsXNL6fuOEyXnpFvcY", authDomain:"painel-veiculos-4a6f5.firebaseapp.com", projectId:"painel-veiculos-4a6f5", storageBucket:"painel-veiculos-4a6f5.firebasestorage.app", messagingSenderId:"910089422875", appId:"1:910089422875:web:fbca3bf5d3f2bdeea950be", measurementId:"G-HX35ZBYJ2S" };
-const TEAM_USER = "PIRATRUCK";
-const TEAM_PASSWORD = "PRTK2026";
 const FS_COLLECTION = "orcamentos";
-let fbDb = null, cloudReady = false, cloudHist = [];
+let fbApp=null, fbAuth=null, fbDb=null, cloudReady=false, cloudHist=[];
 
-function connectFirebase(){
-  if(typeof firebase === "undefined"){ console.warn("Firebase SDK nao carregou"); return; }
-  try{
-    const app = firebase.initializeApp(EMBEDDED_FIREBASE_CONFIG);
-    fbDb = app.firestore();
-    fbDb.collection(FS_COLLECTION).onSnapshot(function(snap){
-      cloudHist = snap.docs.map(function(d){ return Object.assign({__id:d.id}, d.data()); })
-        .sort(function(a,b){ return (b.salvoEm||"").localeCompare(a.salvoEm||""); });
-      cloudReady = true;
-      var hp = document.getElementById('panel-historico');
-      if(hp && hp.style.display !== 'none') renderHist();
-    }, function(err){ console.warn("Firestore:", err && err.message); });
-  }catch(e){ console.warn("connectFirebase:", e && e.message); }
-}
-
-/* override: historico vem da nuvem quando conectado */
-function getHist(){
-  if(cloudReady) return cloudHist;
-  try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; }
-}
+/* override: historico vem da nuvem (Firestore) */
+function getHist(){ return cloudReady ? cloudHist : []; }
 function salvar(){
-  const o = collect();
+  const o=collect();
   if(!o.pecas.length && !o.servicos.length){ alert('Adicione ao menos uma peca ou servico antes de salvar.'); return; }
-  if(fbDb){
-    const id = (o.numero || ('orc-'+Date.now())).replace(/[\/\s]+/g,'-');
-    fbDb.collection(FS_COLLECTION).doc(id).set(o)
-      .then(function(){ alert('Orcamento '+o.numero+' salvo (online).'); })
-      .catch(function(err){ alert('Erro ao salvar online: '+err.message); });
-  } else {
-    const list = getHist();
-    const idx = list.findIndex(function(x){ return x.numero===o.numero; });
-    if(idx>=0) list[idx]=o; else list.unshift(o);
-    setHist(list);
-    alert('Orcamento '+o.numero+' salvo no historico (local).');
-    renderHist();
-  }
+  if(!fbDb){ alert('Ainda conectando. Faca login e tente de novo.'); return; }
+  const id=(o.numero||('orc-'+Date.now())).replace(/[\/\s]+/g,'-');
+  fbDb.collection(FS_COLLECTION).doc(id).set(o)
+    .then(function(){ alert('Orcamento '+o.numero+' salvo (online).'); })
+    .catch(function(err){ alert('Erro ao salvar: '+err.message); });
 }
 function excluirHist(i){
-  if(!confirm('Excluir este orcamento do historico?')) return;
-  if(cloudReady){
-    const o = cloudHist[i];
-    if(o && o.__id) fbDb.collection(FS_COLLECTION).doc(o.__id).delete().catch(function(err){ alert('Erro ao excluir: '+err.message); });
-    return;
-  }
-  const l = getHist(); l.splice(i,1); setHist(l); renderHist();
+  if(!confirm('Excluir este orcamento?')) return;
+  const o=cloudHist[i];
+  if(o && o.__id && fbDb) fbDb.collection(FS_COLLECTION).doc(o.__id).delete().catch(function(e){ alert('Erro ao excluir: '+e.message); });
 }
 
-/* login simples da equipe */
-function piratruckLoginGate(){
-  try{ if(sessionStorage.getItem("pt_auth")==="1") return; }catch(e){}
-  const ov = document.createElement("div");
-  ov.id = "pt-login-overlay";
-  ov.style.cssText = "position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#083f77,#0b5cad);display:flex;align-items:center;justify-content:center;padding:20px";
-  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:340px;width:100%;padding:26px 22px;box-shadow:0 10px 30px rgba(0,0,0,.3);text-align:center;font-family:Segoe UI,system-ui,sans-serif">'
-    + '<div style="font-size:34px;margin-bottom:6px">🧾</div>'
-    + '<h2 style="margin:0 0 4px;font-size:18px;color:#0b3f77">Sistema de Orcamento</h2>'
-    + '<div style="font-size:12.5px;color:#6b7280;margin-bottom:16px">PIRATRUCK / EJR — acesso restrito</div>'
-    + '<input id="pt-user" type="text" placeholder="Login" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:11px;font-size:14px;margin-bottom:10px">'
-    + '<input id="pt-pass" type="password" placeholder="Senha" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:11px;font-size:14px;margin-bottom:10px" onkeydown="if(event.key===\'Enter\')ptTryLogin()">'
-    + '<div id="pt-pass-err" style="display:none;color:#b91c1c;font-size:12px;margin-bottom:8px">Login ou senha incorretos.</div>'
-    + '<button onclick="ptTryLogin()" style="width:100%;background:#0b5cad;color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">Entrar</button>'
-    + '</div>';
-  document.body.appendChild(ov);
-  setTimeout(function(){ var el=document.getElementById("pt-user"); if(el) el.focus(); }, 60);
+function ptStartFirestore(){
+  if(fbDb) return;
+  fbDb = fbApp.firestore();
+  fbDb.collection(FS_COLLECTION).onSnapshot(function(snap){
+    cloudHist = snap.docs.map(function(d){ return Object.assign({__id:d.id}, d.data()); })
+      .sort(function(a,b){ return (b.salvoEm||"").localeCompare(a.salvoEm||""); });
+    cloudReady = true;
+    var hp=document.getElementById('panel-historico');
+    if(hp && hp.style.display!=='none') renderHist();
+  }, function(err){ console.warn("Firestore:", err&&err.message); });
 }
-function ptTryLogin(){
-  const uel = document.getElementById("pt-user");
-  const el = document.getElementById("pt-pass");
-  if(uel && uel.value.trim().toUpperCase()===TEAM_USER && el && el.value===TEAM_PASSWORD){
-    try{ sessionStorage.setItem("pt_auth","1"); }catch(e){}
-    const ov = document.getElementById("pt-login-overlay"); if(ov) ov.remove();
-  } else {
-    const err = document.getElementById("pt-pass-err"); if(err) err.style.display="block";
+function ptShowLogin(){
+  var ov=document.getElementById("pt-login-overlay");
+  if(!ov){
+    ov=document.createElement("div"); ov.id="pt-login-overlay";
+    ov.style.cssText="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#083f77,#0b5cad);display:flex;align-items:center;justify-content:center;padding:20px";
+    ov.innerHTML='<div style="background:#fff;border-radius:14px;max-width:340px;width:100%;padding:26px 22px;box-shadow:0 10px 30px rgba(0,0,0,.3);text-align:center;font-family:Segoe UI,system-ui,sans-serif">'
+      +'<div style="font-size:34px;margin-bottom:6px">🧾</div>'
+      +'<h2 style="margin:0 0 4px;font-size:18px;color:#0b3f77">Sistema de Orcamento</h2>'
+      +'<div style="font-size:12.5px;color:#6b7280;margin-bottom:16px">PIRATRUCK / EJR — entre para continuar</div>'
+      +'<input id="pt-email" type="email" placeholder="E-mail" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:11px;font-size:14px;margin-bottom:10px">'
+      +'<input id="pt-pass" type="password" placeholder="Senha" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:11px;font-size:14px;margin-bottom:10px" onkeydown="if(event.key===\'Enter\')ptDoLogin()">'
+      +'<div id="pt-login-msg" style="display:none;color:#b91c1c;font-size:12px;margin-bottom:8px"></div>'
+      +'<button onclick="ptDoLogin()" style="width:100%;background:#0b5cad;color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">Entrar</button>'
+      +'</div>';
+    document.body.appendChild(ov);
   }
+  ov.style.display="flex";
+  setTimeout(function(){ var el=document.getElementById("pt-email"); if(el) el.focus(); },60);
 }
-
-piratruckLoginGate();
-connectFirebase();
+function ptHideLogin(){ var ov=document.getElementById("pt-login-overlay"); if(ov) ov.style.display="none"; }
+function ptDoLogin(){
+  var email=(document.getElementById("pt-email")||{}).value||"";
+  var pass=(document.getElementById("pt-pass")||{}).value||"";
+  var m=document.getElementById("pt-login-msg"); if(m) m.style.display="none";
+  fbAuth.signInWithEmailAndPassword(email.trim(), pass)
+    .catch(function(err){ if(m){ m.textContent="E-mail ou senha incorretos."; m.style.display="block"; } });
+}
+function ptLogout(){ if(fbAuth) fbAuth.signOut(); }
+function ptAddLogout(){
+  if(document.getElementById("pt-logout")) return;
+  var h=document.querySelector("header.app"); if(!h) return;
+  var b=document.createElement("button"); b.id="pt-logout"; b.textContent="Sair"; b.onclick=ptLogout;
+  b.style.cssText="margin-left:auto;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer";
+  h.appendChild(b);
+}
+function ptBoot(){
+  if(typeof firebase==="undefined"){ alert("Nao carregou o Firebase (verifique a internet)."); return; }
+  fbApp = firebase.initializeApp(EMBEDDED_FIREBASE_CONFIG);
+  fbAuth = firebase.auth();
+  fbAuth.onAuthStateChanged(function(user){
+    if(user){ ptHideLogin(); ptStartFirestore(); ptAddLogout(); }
+    else { ptShowLogin(); }
+  });
+}
+ptBoot();
 
 </script>
 </body>
