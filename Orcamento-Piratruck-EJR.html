@@ -688,9 +688,9 @@ function empBlock(tipo,rows,total){
   var cor = tipo==='pecas' ? '#0b5cad' : '#c2410c';
   var titulo = tipo==='pecas' ? 'PEÇAS' : 'SERVIÇOS';
   return '<div style="margin-top:14px;border:1px solid #ccc;border-radius:6px;overflow:hidden">'
-    + '<div style="background:'+cor+';color:#fff;padding:6px 12px">'
-    + '<div style="font-weight:700">'+titulo+' — '+e.nome+'</div>'
-    + '<div style="font-size:10.5px;opacity:1;font-weight:600">CNPJ '+e.cnpj+' · Inscr. Municipal '+e.im+(e.tel?' · Tel '+e.tel:'')+'</div>'
+    + '<div style="padding:7px 12px;border-bottom:2px solid '+cor+';background:#f7f7f7">'
+    + '<div style="font-weight:700;color:#222"><span style="color:'+cor+'">'+titulo+'</span> — '+e.nome+'</div>'
+    + '<div style="font-size:11px;color:#333;font-weight:600">CNPJ '+e.cnpj+' · Inscr. Municipal '+e.im+(e.tel?' · Tel '+e.tel:'')+'</div>'
     + '</div>'
     + '<table style="width:100%;border-collapse:collapse;font-size:'+PT_FONT+'px">'
     + '<thead><tr style="background:#f0f0f0">'
