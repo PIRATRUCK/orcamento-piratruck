@@ -70,7 +70,7 @@
   .company-band.pecas{background:linear-gradient(135deg,var(--pecas-d),var(--pecas))}
   .company-band.serv{background:linear-gradient(135deg,var(--serv-d),var(--serv))}
   .company-band .name{font-weight:700;font-size:15px}
-  .company-band .meta{font-size:12px;opacity:.92;line-height:1.5}
+  .company-band .meta{font-size:12px;opacity:1;line-height:1.5}
 
   table{width:100%;border-collapse:collapse}
   th,td{padding:8px;text-align:left;font-size:13px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -209,7 +209,7 @@
   <div class="panel" id="panel-pecas">
     <div class="company-band pecas">
       <div>
-        <div class="name">PIRATRUCK VEÍCULOS E IMPLEMENTOS LTDA - EPP</div>
+        <div class="name">PIRATRUCK VEÍCULOS E IMPLEMENTOS LTDA</div>
         <div class="meta">CNPJ 48.643.134/0001-57 &nbsp;·&nbsp; Inscrição Municipal 535.064.853.116</div>
       </div>
       <div class="meta">Tel: (19) 3415-9999</div>
@@ -322,7 +322,7 @@ const KEY = 'orcamentos_piratruck_ejr_v1';
 
 const EMP = {
   pecas:{
-    nome:'PIRATRUCK VEÍCULOS E IMPLEMENTOS LTDA - EPP',
+    nome:'PIRATRUCK VEÍCULOS E IMPLEMENTOS LTDA',
     cnpj:'48.643.134/0001-57', im:'535.064.853.116', tel:'(19) 3415-9999'
   },
   servicos:{
@@ -690,7 +690,7 @@ function empBlock(tipo,rows,total){
   return '<div style="margin-top:14px;border:1px solid #ccc;border-radius:6px;overflow:hidden">'
     + '<div style="background:'+cor+';color:#fff;padding:6px 12px">'
     + '<div style="font-weight:700">'+titulo+' — '+e.nome+'</div>'
-    + '<div style="font-size:10px;opacity:.92">CNPJ '+e.cnpj+' · Inscr. Municipal '+e.im+(e.tel?' · Tel '+e.tel:'')+'</div>'
+    + '<div style="font-size:10.5px;opacity:1;font-weight:600">CNPJ '+e.cnpj+' · Inscr. Municipal '+e.im+(e.tel?' · Tel '+e.tel:'')+'</div>'
     + '</div>'
     + '<table style="width:100%;border-collapse:collapse;font-size:'+PT_FONT+'px">'
     + '<thead><tr style="background:#f0f0f0">'
