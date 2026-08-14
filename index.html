@@ -779,8 +779,10 @@ function imprimir(orc){
     + '<div style="text-align:center">_____________________________<br>Cliente</div>'
     + '</div>'
     + '</div>';
+  if(!orc){ try{ if(typeof fbDb!=='undefined' && fbDb && ((o.pecas||[]).length||(o.servicos||[]).length)){ var _sid=(o.numero||('orc-'+Date.now())).replace(/[\/\s]+/g,'-'); fbDb.collection(FS_COLLECTION).doc(_sid).set(o).then(function(){ showToastSafe('Orçamento '+(o.numero||'')+' salvo no histórico ✓'); }); } }catch(e){} }
   window.print();
 }
+function showToastSafe(msg){ try{ if(typeof showToast==='function'){ showToast(msg,'ok'); return; } }catch(e){} }
 
 
 </script>
