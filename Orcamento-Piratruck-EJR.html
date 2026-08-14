@@ -193,7 +193,7 @@
       </div>
       <div class="field">
         <label>Forma de Pagamento</label>
-        <select id="formaPagamento">
+        <select id="formaPagamento" onchange="toggleParcelas()">
           <option value="">Selecione...</option>
           <option>À vista (dinheiro/PIX)</option>
           <option>PIX</option>
@@ -201,9 +201,14 @@
           <option>Cartão de crédito</option>
           <option>Cartão de crédito parcelado</option>
           <option>Boleto</option>
+          <option>Boleto parcelado</option>
           <option>Transferência bancária</option>
           <option>Faturado / a prazo</option>
         </select>
+      </div>
+      <div class="field" id="parcelas-field" style="display:none">
+        <label>Nº de parcelas</label>
+        <input id="parcelas" type="number" min="2" max="24" step="1" placeholder="Ex: 3" oninput="recalc && recalc()">
       </div>
       <div class="field">
         <label>Validade do orçamento (10 dias)</label>
@@ -420,7 +425,7 @@ function collect(){
     numero:val('numero'),data:val('data'),cliente:val('cliente'),telefone:val('telefone'),
     placa:val('placa'),modelo:val('modelo'),km:val('km'),chassi:val('chassi'),obs:val('obs'),
     desconto:val('desconto'),
-    formaPagamento:val('formaPagamento'), validade:val('validade'),
+    formaPagamento:val('formaPagamento'), validade:val('validade'), parcelas:val('parcelas'),
     pecas:collectRows('pecas'), servicos:collectRows('servicos'),
     salvoEm:new Date().toISOString()
   };
@@ -434,10 +439,17 @@ function updateValidade(){
   var d=new Date(dv+'T00:00:00'); d.setDate(d.getDate()+10);
   out.value=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
 }
+function toggleParcelas(){
+  var fp=(document.getElementById('formaPagamento')||{}).value||'';
+  var show=/parcel/i.test(fp);
+  var f=document.getElementById('parcelas-field');
+  if(f) f.style.display = show ? '' : 'none';
+  if(!show){ var p=document.getElementById('parcelas'); if(p) p.value=''; }
+}
 
 function loadOrc(o){
-  ['numero','data','cliente','telefone','placa','modelo','km','chassi','obs','desconto','formaPagamento'].forEach(k=>setVal(k,o[k]));
-  updateValidade();
+  ['numero','data','cliente','telefone','placa','modelo','km','chassi','obs','desconto','formaPagamento','parcelas'].forEach(k=>setVal(k,o[k]));
+  updateValidade(); toggleParcelas();
   document.getElementById('tb-pecas').innerHTML='';
   document.getElementById('tb-servicos').innerHTML='';
   (o.pecas||[]).forEach(r=>addRow('pecas',r));
@@ -460,11 +472,11 @@ function novoOrcamento(){
      !confirm('Iniciar um novo orçamento? Itens não salvos serão perdidos.')) return;
   document.getElementById('tb-pecas').innerHTML='';
   document.getElementById('tb-servicos').innerHTML='';
-  ['cliente','telefone','placa','modelo','km','chassi','obs','formaPagamento'].forEach(k=>setVal(k,''));
+  ['cliente','telefone','placa','modelo','km','chassi','obs','formaPagamento','parcelas'].forEach(k=>setVal(k,''));
   setVal('desconto','0');
   setVal('numero',nextNumero());
   setVal('data',new Date().toISOString().slice(0,10));
-  updateValidade();
+  updateValidade(); toggleParcelas();
   addRow('pecas'); addRow('servicos');
   recalc();
 }
@@ -761,7 +773,7 @@ function imprimir(orc){
     + '<tr><td style="padding:2px 0"><b>Veículo:</b> '+escapeHtml(o.modelo||'')+'</td>'
     + '<td style="padding:2px 0"><b>Placa:</b> '+escapeHtml(o.placa||'')+' &nbsp; <b>KM:</b> '+escapeHtml(o.km||'')+'</td></tr>'
     + '<tr><td style="padding:2px 0" colspan="2"><b>CHASSI:</b> '+escapeHtml(o.chassi||'')+'</td></tr>'
-    + '<tr><td style="padding:2px 0"><b>Forma de pagamento:</b> '+escapeHtml(o.formaPagamento||'—')+'</td>'
+    + '<tr><td style="padding:2px 0"><b>Forma de pagamento:</b> '+escapeHtml((o.formaPagamento||'—')+(o.parcelas?(' em '+o.parcelas+'x'):''))+'</td>'
     + '<td style="padding:2px 0"><b>Validade:</b> '+escapeHtml(vdt)+' (10 dias)</td></tr>'
     + '</table>'
     + empBlock('pecas', o.pecas||[], tp)
