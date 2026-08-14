@@ -165,7 +165,7 @@
       </div>
       <div class="field">
         <label>Data</label>
-        <input id="data" type="date">
+        <input id="data" type="date" oninput="updateValidade()">
       </div>
       <div class="field col2">
         <label>Cliente</label>
@@ -190,6 +190,24 @@
       <div class="field col2">
         <label>Chassi</label>
         <input id="chassi" placeholder="0X0XX00X0XX000000">
+      </div>
+      <div class="field">
+        <label>Forma de Pagamento</label>
+        <select id="formaPagamento">
+          <option value="">Selecione...</option>
+          <option>À vista (dinheiro/PIX)</option>
+          <option>PIX</option>
+          <option>Cartão de débito</option>
+          <option>Cartão de crédito</option>
+          <option>Cartão de crédito parcelado</option>
+          <option>Boleto</option>
+          <option>Transferência bancária</option>
+          <option>Faturado / a prazo</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Validade do orçamento (10 dias)</label>
+        <input id="validade" readonly placeholder="preenchido automático">
       </div>
       <div class="field col4">
         <label>Observações</label>
@@ -402,15 +420,24 @@ function collect(){
     numero:val('numero'),data:val('data'),cliente:val('cliente'),telefone:val('telefone'),
     placa:val('placa'),modelo:val('modelo'),km:val('km'),chassi:val('chassi'),obs:val('obs'),
     desconto:val('desconto'),
+    formaPagamento:val('formaPagamento'), validade:val('validade'),
     pecas:collectRows('pecas'), servicos:collectRows('servicos'),
     salvoEm:new Date().toISOString()
   };
 }
 const val = id => document.getElementById(id).value;
 function setVal(id,v){document.getElementById(id).value=v??'';}
+function updateValidade(){
+  var dv=(document.getElementById('data')||{}).value||'';
+  var out=document.getElementById('validade'); if(!out) return;
+  if(!dv){ out.value=''; return; }
+  var d=new Date(dv+'T00:00:00'); d.setDate(d.getDate()+10);
+  out.value=('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();
+}
 
 function loadOrc(o){
-  ['numero','data','cliente','telefone','placa','modelo','km','chassi','obs','desconto'].forEach(k=>setVal(k,o[k]));
+  ['numero','data','cliente','telefone','placa','modelo','km','chassi','obs','desconto','formaPagamento'].forEach(k=>setVal(k,o[k]));
+  updateValidade();
   document.getElementById('tb-pecas').innerHTML='';
   document.getElementById('tb-servicos').innerHTML='';
   (o.pecas||[]).forEach(r=>addRow('pecas',r));
@@ -433,10 +460,11 @@ function novoOrcamento(){
      !confirm('Iniciar um novo orçamento? Itens não salvos serão perdidos.')) return;
   document.getElementById('tb-pecas').innerHTML='';
   document.getElementById('tb-servicos').innerHTML='';
-  ['cliente','telefone','placa','modelo','km','chassi','obs'].forEach(k=>setVal(k,''));
+  ['cliente','telefone','placa','modelo','km','chassi','obs','formaPagamento'].forEach(k=>setVal(k,''));
   setVal('desconto','0');
   setVal('numero',nextNumero());
   setVal('data',new Date().toISOString().slice(0,10));
+  updateValidade();
   addRow('pecas'); addRow('servicos');
   recalc();
 }
@@ -552,6 +580,7 @@ function imprimir(orc){
   const desc=parseNum(o.desconto);
   const geral=Math.max(0,tp+ts-desc);
   const dt=o.data?o.data.split('-').reverse().join('/'):'';
+  const vdt = o.validade || (o.data?(function(){var d=new Date(o.data+'T00:00:00');d.setDate(d.getDate()+10);return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear();})():'');
   document.getElementById('printArea').innerHTML=`
     <div style="font-family:Arial,sans-serif;color:#222">
     <div style="padding:2px 0;margin-bottom:10px;border-bottom:2px solid #eee"><img src="${LOGO_DATAURI}" style="height:46px;width:auto;display:block" alt="PIRATRUCK"></div>
@@ -565,6 +594,8 @@ function imprimir(orc){
         <tr><td style="padding:2px 0"><b>Veículo:</b> ${escapeHtml(o.modelo||'')}</td>
             <td style="padding:2px 0"><b>Placa:</b> ${escapeHtml(o.placa||'')} &nbsp; <b>KM:</b> ${escapeHtml(o.km||'')}</td></tr>
         <tr><td style="padding:2px 0" colspan="2"><b>CHASSI:</b> ${escapeHtml(o.chassi||'')}</td></tr>
+        <tr><td style="padding:2px 0"><b>Forma de pagamento:</b> ${escapeHtml(o.formaPagamento||'—')}</td>
+            <td style="padding:2px 0"><b>Validade do orçamento:</b> ${escapeHtml(vdt)}</td></tr>
       </table>
       ${empBlock('pecas',o.pecas||[],tp)}
       ${empBlock('servicos',o.servicos||[],ts)}
@@ -713,6 +744,7 @@ function imprimir(orc){
   var desc = parseNum(o.desconto);
   var geral = Math.max(0, tp+ts-desc);
   var dt = o.data ? o.data.split('-').reverse().join('/') : '';
+  var vdt = o.validade || (o.data ? (function(){ var d=new Date(o.data+'T00:00:00'); d.setDate(d.getDate()+10); return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); })() : '');
   var n = (o.pecas||[]).length + (o.servicos||[]).length;
   PT_FONT = n<=14 ? 12 : n<=22 ? 11 : n<=30 ? 10 : n<=40 ? 9 : 8;
   PT_PAD  = n<=14 ? 6  : n<=22 ? 5  : n<=30 ? 4  : n<=40 ? 3 : 2;
@@ -729,6 +761,8 @@ function imprimir(orc){
     + '<tr><td style="padding:2px 0"><b>Veículo:</b> '+escapeHtml(o.modelo||'')+'</td>'
     + '<td style="padding:2px 0"><b>Placa:</b> '+escapeHtml(o.placa||'')+' &nbsp; <b>KM:</b> '+escapeHtml(o.km||'')+'</td></tr>'
     + '<tr><td style="padding:2px 0" colspan="2"><b>CHASSI:</b> '+escapeHtml(o.chassi||'')+'</td></tr>'
+    + '<tr><td style="padding:2px 0"><b>Forma de pagamento:</b> '+escapeHtml(o.formaPagamento||'—')+'</td>'
+    + '<td style="padding:2px 0"><b>Validade:</b> '+escapeHtml(vdt)+' (10 dias)</td></tr>'
     + '</table>'
     + empBlock('pecas', o.pecas||[], tp)
     + empBlock('servicos', o.servicos||[], ts)
